@@ -19,8 +19,6 @@ module MiniNode
     end
 
     def handle_read
-      puts ">>> handle_read called" if DEBUG_MODE
-
       data = @io.read_nonblock(CHUNK_SIZE)
       @total_bytes_read += data.bytesize
       emit :data, data
@@ -35,27 +33,18 @@ module MiniNode
     end
 
     def write(data)
-      if DEBUG_MODE
-        chomped_data = data.chomp
+      @write_buffer << data
+    end
 
-        if chomped_data.size > 40
-          puts "Writing `#{chomped_data[0..19].inspect} ... #{chomped_data[-20..-1].inspect}`"
-        else
-          puts "Writing `#{chomped_data.inspect}`"
-        end
+    def flush
+      return if @write_buffer.empty? || closed?
+
+      begin
+        bytes_written = @io.write_nonblock(@write_buffer)
+        @total_bytes_written += bytes_written
+        @write_buffer.slice! 0, bytes_written
+      rescue Errno::EAGAIN, Errno::EPIPE
       end
-
-      @write_buffer << data unless data.empty?
-
-      bytes_written = @io.write_nonblock(@write_buffer)
-      @total_bytes_written += bytes_written
-      @write_buffer = @write_buffer[bytes_written..-1] || ''
-
-      if DEBUG_MODE
-        puts "#{bytes_written} bytes written"
-        puts "#{@write_buffer.bytesize} bytes remaining"
-      end
-    rescue Errno::EAGAIN, Errno::EPIPE
     end
 
     def close
@@ -82,12 +71,6 @@ module MiniNode
 
     def to_s
       @io.class.to_s
-    end
-
-    protected
-
-    def flush
-      write('') unless @write_buffer.empty?
     end
   end
 end
