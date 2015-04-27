@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "mini_node"
+
+reactor = MiniNode::Reactor.new
+
+server = reactor.listen("0.0.0.0", 4000)
+
+server.on(:accept) do |client|
+  client.write("Bem-vindo ao servidor!")
+
+  client.on(:data) do |data|
+    client.write(data)
+  end
+
+  next_tick_event_callback_id = reactor.on(:next_tick) do
+    client.write("Tick")
+  end
+
+  client.on(:close) do
+    reactor.unregister(:next_tick, next_tick_event_callback_id)
+  end
+end
+
+reactor.start

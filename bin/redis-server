@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "mini_node"
+require 'redis'
+
+reactor = MiniNode::Reactor.new
+
+server = reactor.listen("0.0.0.0", 4000)
+
+server.on(:accept) do |client|
+  client.write("Welcome to Redis's async client!\n")
+
+  client.on(:data) do |data|
+    case data
+    when /^GET (\w+)$/i
+      value = Redis.current.get($1) || ''
+
+      client.write "$#{value.size}\n"
+      client.write value + "\n"
+    when /^SET (\w+) "?(.+?)"?$/i
+      client.write Redis.current.set($1, $2) + "\n"
+    when /^quit$/
+      client.write "Bye\n"
+      client.close
+    else
+      client.write "Invalid command.\n"
+    end
+  end
+end
+
+reactor.start
