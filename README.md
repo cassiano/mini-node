@@ -38,4 +38,3 @@ Nosso servidor HTTP pode ser usado numa aplicação Rack? Tente =]
 A libuv é a biblioteca por trás do Node, que abstrai bastante as camadas mais baixas de sistemas assíncronos.
 Esse exercício é tentar manter a mesma API que propomos, mas utilizando por trás a libuv, através dos bindings de Ruby dela: https://github.com/cotag/libuv
 Obs: não sei se é possível fazer esse exercício, mas se alguém estiver disposto a tentar...
-# mini-node
