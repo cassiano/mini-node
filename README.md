@@ -2,6 +2,11 @@
 
 Os exemplos estão na pasta `bin`.
 
+# Como rodar
+```
+bundle exec rerun --background --dir bin,lib --pattern '{**/*}' -- ./bin/http_static_server
+```
+
 # Exercícios
 
 ## Exercício: Redis
@@ -21,7 +26,7 @@ O `GET <value>` retorna um $, seguido do número de bytes da resposta, seguido d
 O exercício é implementar uma versão assíncrona de um client para o Redis que aceite os comandos `GET` e `SET`.
 
 ## Servir páginas estáticas via HTTP
-Seguindo o exemplo utilizando o `http_parser.rb`, expanda-o para que seja possível servir páginas estáticas assíncronamente. 
+Seguindo o exemplo utilizando o `http_parser.rb`, expanda-o para que seja possível servir páginas estáticas assíncronamente.
 Por curiosidade, faça um `ab` utilizando essa nossa simples implementação contra algum servidor rodando Unicorn ou Puma servindo arquivos estáticos, e os assistam sendo humilhados =]
 
 ## nio4r

@@ -9,10 +9,6 @@ module MiniNode
       @write_buffer = ''
     end
 
-    def closed?
-      @io.closed?
-    end
-
     def handle_read
       puts ">>> handle_read called" if DEBUG_MODE
 

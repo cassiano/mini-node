@@ -11,27 +11,25 @@ module MiniNode
       @streams = []
     end
 
-    def add_io(io)
-      MiniNode::Stream.new(io).tap do |stream|
-        add_stream stream
-      end
-    end
+    def add_stream(stream, wrap = false)
+      stream = Stream.new(stream) if wrap
 
-    def add_stream(stream)
       @streams << stream
 
       stream.on(:close) do
         remove_stream stream
       end
+
+      stream
     end
 
     def listen(host, port)
       server = Server.new(TCPServer.new(host, port))
 
-      add_stream(server)
+      add_stream server
 
       server.on(:accept) do |client|
-        add_stream(client)
+        add_stream client
       end
 
       server

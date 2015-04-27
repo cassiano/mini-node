@@ -38,7 +38,7 @@ server.on(:accept) do |client|
         file.close
         client.close
       else
-        file_stream = reactor.add_io(file)
+        file_stream = reactor.add_stream(file, true)
 
         file_stream.pipe_to(client)
 
