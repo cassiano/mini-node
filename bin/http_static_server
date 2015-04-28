@@ -32,6 +32,7 @@ server.on(:accept) do |client|
       client.write("HTTP/1.1 200 OK\r\n")
       client.write("Content-Type: #{content_type};#{media_type}\r\n")
       client.write("Content-Length: #{file.size}\r\n")
+      client.write("Last-Modified: #{file.mtime.gmtime.strftime('%a, %d %b %Y %H:%M:%S %Z')}")
       client.write("\r\n")
 
       if parser.http_method == 'HEAD'
