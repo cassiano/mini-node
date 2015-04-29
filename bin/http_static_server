@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
-DEBUG_MODE = true
+DEBUG_MODE = false
 
-require "bundler/setup"
-require "mini_node"
+require 'bundler/setup'
+require 'mini_node'
 require "http/parser"
 require 'mime/types'
 require 'time'
@@ -29,7 +29,7 @@ server.on(:accept) do |client|
       content_type = mime_type.content_type
       media_type   = 'charset=UTF-8' if mime_type.media_type.downcase == 'text'
 
-      if (not_modified_since = parser.headers['If-Modified-Since']) && file.mtime <= Time.parse(not_modified_since)
+      if (if_modified_since = parser.headers['If-Modified-Since']) && file.mtime <= Time.parse(if_modified_since)
         client.write("HTTP/1.1 304 Not Modified\r\n")
         client.write("Content-Type: #{content_type};#{media_type}\r\n")
         client.write("Last-Modified: #{file.mtime.httpdate}\r\n")
@@ -49,12 +49,8 @@ server.on(:accept) do |client|
           client.write("\r\n")
 
           file_stream = reactor.add_stream(file, true)
-
           file_stream.pipe_to(client)
-
-          file_stream.on(:close) do
-            client.close
-          end
+          file_stream.on(:close) { client.close }
         end
       end
     rescue Errno::ENOENT
