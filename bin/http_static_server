@@ -24,6 +24,13 @@ server.on(:accept) do |client|
       puts '------------'
     end
 
+    if !['GET', 'HEAD'].include?(parser.http_method)
+      client.write("HTTP/1.1 403 Forbidden\r\n")
+      client.close
+
+      next
+    end
+
     begin
       file = File.open(File.join('public', parser.request_url), 'r')
 
@@ -38,24 +45,28 @@ server.on(:accept) do |client|
 
         file.close
         client.close
-      else
-        client.write("HTTP/1.1 200 OK\r\n")
-        client.write("Content-Type: #{content_type};#{media_type}\r\n")
-        client.write("Content-Length: #{file.size}\r\n")
-        client.write("Last-Modified: #{file.mtime.httpdate}\r\n")
 
-        if parser.http_method == 'HEAD'
-          file.close
-          client.close
-        else
-          client.write("\r\n")
+        next
+      end
 
-          file_stream = reactor.add_stream(file, true)
-          file_stream.pipe_to(client)
-          file_stream.on(:close) do
-            client.close
-          end
-        end
+      client.write("HTTP/1.1 200 OK\r\n")
+      client.write("Content-Type: #{content_type};#{media_type}\r\n")
+      client.write("Content-Length: #{file.size}\r\n")
+      client.write("Last-Modified: #{file.mtime.httpdate}\r\n")
+
+      if parser.http_method == 'HEAD'
+        file.close
+        client.close
+
+        next
+      end
+
+      client.write("\r\n")
+
+      file_stream = reactor.add_stream(file, true)
+      file_stream.pipe_to(client)
+      file_stream.on(:close) do
+        client.close
       end
     rescue Errno::ENOENT
       client.write("HTTP/1.1 404 Not Found\r\n")
