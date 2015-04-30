@@ -52,7 +52,12 @@ server.on(:accept) do |client|
 
           file_stream = reactor.add_stream(file, true)
           file_stream.pipe_to(client)
-          file_stream.on(:close) { client.close }
+          file_stream.on(:close) do
+            client.close
+
+            puts ">>>> Bytes read: #{file_stream.total_bytes_read}" if DEBUG_MODE
+            puts ">>>> Bytes written: #{client.total_bytes_written}" if DEBUG_MODE
+          end
         end
       end
     rescue Errno::ENOENT

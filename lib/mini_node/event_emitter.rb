@@ -5,7 +5,7 @@ module MiniNode
     end
 
     def on(event, &callback)
-      puts "[#{Time.now}] Registering event `#{event}` of #{self.class.name}" if DEBUG_MODE
+      puts "[#{Time.now}] Registering event `#{event}` on #{self}" if DEBUG_MODE
 
       callbacks[event] << callback
 
@@ -13,7 +13,7 @@ module MiniNode
     end
 
     def unregister(event, callback_id)
-      puts "[#{Time.now}] Unregistering callback ID `#{callback_id}` for event `#{event}` of #{self.class.name}" if DEBUG_MODE
+      puts "[#{Time.now}] Unregistering callback ID `#{callback_id}` for event `#{event}` on #{self}" if DEBUG_MODE
 
       callbacks[event].delete_if { |callback| callback.object_id == callback_id }
     end
