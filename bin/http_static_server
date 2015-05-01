@@ -2,95 +2,65 @@
 
 DEBUG_MODE = false
 
-require 'mini_node'
-require 'mini_node/request'
-require 'mini_node/response'
-
-require 'bundler/setup'
-require "http/parser"
+require 'mini_node/http_server'
 require 'mime/types'
 
-reactor = MiniNode::Reactor.new
-
-server = reactor.listen("0.0.0.0", 4000)
-
-reactor.on(:next_tick) { puts "Open streams: #{reactor.stream_count}" } if DEBUG_MODE
-
-def process_http_request(client)
-  request  = MiniNode::Request.new(Http::Parser.new)
-  response = MiniNode::Response.new(client)
-
-  client.on(:data) do |data|
-    request.http_parser << data
+MiniNode::HttpServer.new("0.0.0.0", 4000) do |request, response, reactor|
+  if DEBUG_MODE
+    puts '------------'
+    puts [request.verb, request.url, request.headers].inspect
+    puts '------------'
   end
 
-  request.http_parser.on_message_complete = lambda do
-    yield request, response
+  unless request.get? || request.head?
+    response.status_code = :forbidden
+    response.finish
+
+    return
   end
-end
 
-server.on(:accept) do |client|
-  process_http_request(client) do |request, response|
-    if DEBUG_MODE
-      puts '------------'
-      puts [request.verb, request.url, request.headers].inspect
-      puts '------------'
-    end
+  begin
+    file = File.open(File.join('public', request.url), 'r')
 
-    unless request.get? || request.head?
-      response.status_code = :forbidden
+    mime_type    = MIME::Types.of(file.path).first
+    content_type = mime_type.content_type
+    media_type   = 'charset=UTF-8' if mime_type.media_type.downcase == 'text'
+
+    if request.if_modified_since && file.mtime <= request.if_modified_since
+      response.status_code   = :not_modified
+      response.type          = [content_type, media_type].join(';')
+      response.last_modified = file.mtime
       response.finish
+
+      file.close
 
       return
     end
 
-    begin
-      file = File.open(File.join('public', request.url), 'r')
+    response.status_code   = :ok
+    response.type          = [content_type, media_type].join(';')
+    response.length        = file.size
+    response.last_modified = file.mtime
 
-      mime_type    = MIME::Types.of(file.path).first
-      content_type = mime_type.content_type
-      media_type   = 'charset=UTF-8' if mime_type.media_type.downcase == 'text'
+    if request.head?
+      response.finish
+      file.close
 
-      if request.if_modified_since && file.mtime <= request.if_modified_since
-        response.status_code   = :not_modified
-        response.type          = [content_type, media_type].join(';')
-        response.last_modified = file.mtime
-        response.finish
+      return
+    end
 
-        file.close
+    response.add_new_line
 
-        return
-      end
+    file_stream = reactor.add_stream(file, true)
 
-      response.status_code   = :ok
-      response.type          = [content_type, media_type].join(';')
-      response.length        = file.size
-      response.last_modified = file.mtime
+    file_stream.pipe_to response.client
 
-      if request.head?
-        response.finish
-        file.close
-
-        return
-      end
-
-      response.add_new_line
-
-      file_stream = reactor.add_stream(file, true)
-
-      file_stream.pipe_to(client)
-
-      file_stream.on(:close) { response.finish }
-    rescue Errno::ENOENT
-      response.status_code = :not_found
-      response.length      = 0
+    file_stream.on(:close) do
       response.finish
     end
+  rescue Errno::ENOENT
+    response.status_code = :not_found
+    response.length      = 0
+    response.finish
   end
-
-  # client.on(:data) do |data|
-  #   request.http_parser << data
-  # end
 end
-
-reactor.start
