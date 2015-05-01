@@ -15,7 +15,7 @@ GEM
       celluloid (~> 0.16.0)
       rb-fsevent (>= 0.9.3)
       rb-inotify (>= 0.9)
-    mime-types (2.4.3)
+    mime-types (2.5)
     rake (10.4.2)
     rb-fsevent (0.9.4)
     rb-inotify (0.9.5)

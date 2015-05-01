@@ -8,6 +8,101 @@ require "http/parser"
 require 'mime/types'
 require 'time'
 
+class Request
+  attr_reader :http_parser
+
+  def initialize(http_parser)
+    @http_parser = http_parser
+  end
+
+  def verb
+    http_parser.http_method
+  end
+
+  def url
+    http_parser.request_url
+  end
+
+  def headers
+    http_parser.headers
+  end
+
+  def get?
+    verb == 'GET'
+  end
+
+  def post?
+    verb == 'POST'
+  end
+
+  def put?
+    verb == 'PUT'
+  end
+
+  def delete?
+    verb == 'DELETE'
+  end
+
+  def patch?
+    verb == 'PATCH'
+  end
+
+  def head?
+    verb == 'HEAD'
+  end
+
+  def if_modified_since
+    headers['If-Modified-Since']
+  end
+end
+
+class Response
+  attr_reader :client
+
+  def initialize(client)
+    @client = client
+  end
+
+  def add_header(name, value)
+    client.write "#{name}: #{value}\r\n"
+  end
+
+  def add_new_line
+    client.write "\r\n"
+  end
+
+  def length=(length)
+    add_header 'Content-Length', length
+  end
+
+  def type=(type)
+    add_header 'Content-Type', type
+  end
+
+  def last_modified=(last_modified)
+    add_header 'Last-Modified', last_modified
+  end
+
+  def status_code=(code)
+    case code
+    when 200, :ok
+      client.write("HTTP/1.1 200 OK\r\n")
+    when 304, :not_modified
+      client.write("HTTP/1.1 304 Not Modified\r\n")
+    when 403, :forbidden
+      client.write("HTTP/1.1 403 Forbidden\r\n")
+    when 404, :not_found
+      client.write("HTTP/1.1 404 Not Found\r\n")
+    else
+      raise "Invalid HTTP status code #{code}"
+    end
+  end
+
+  def finish
+    client.close
+  end
+end
+
 reactor = MiniNode::Reactor.new
 
 server = reactor.listen("0.0.0.0", 4000)
@@ -15,68 +110,69 @@ server = reactor.listen("0.0.0.0", 4000)
 reactor.on(:next_tick) { puts "Open streams: #{reactor.stream_count}" } if DEBUG_MODE
 
 server.on(:accept) do |client|
-  parser = Http::Parser.new
+  request  = Request.new(Http::Parser.new)
+  response = Response.new(client)
 
-  parser.on_message_complete = proc do |env|
+  request.http_parser.on_message_complete = lambda do
     if DEBUG_MODE
       puts '------------'
-      puts [parser.http_method, parser.request_url, parser.headers].inspect
+      puts [request.verb, request.url, request.headers].inspect
       puts '------------'
     end
 
-    if !['GET', 'HEAD'].include?(parser.http_method)
-      client.write("HTTP/1.1 403 Forbidden\r\n")
-      client.close
+    unless request.get? || request.head?
+      response.status_code = :forbidden
+      response.finish
 
-      next
+      return
     end
 
     begin
-      file = File.open(File.join('public', parser.request_url), 'r')
+      file = File.open(File.join('public', request.url), 'r')
 
       mime_type    = MIME::Types.of(file.path).first
       content_type = mime_type.content_type
       media_type   = 'charset=UTF-8' if mime_type.media_type.downcase == 'text'
 
-      if (if_modified_since = parser.headers['If-Modified-Since']) && file.mtime <= Time.parse(if_modified_since)
-        client.write("HTTP/1.1 304 Not Modified\r\n")
-        client.write("Content-Type: #{content_type};#{media_type}\r\n")
-        client.write("Last-Modified: #{file.mtime.httpdate}\r\n")
+      if request.if_modified_since && file.mtime <= Time.parse(request.if_modified_since)
+        response.status_code   = :not_modified
+        response.type          = [content_type, media_type].join(';')
+        response.last_modified = file.mtime.httpdate
+        response.finish
 
         file.close
-        client.close
 
-        next
+        return
       end
 
-      client.write("HTTP/1.1 200 OK\r\n")
-      client.write("Content-Type: #{content_type};#{media_type}\r\n")
-      client.write("Content-Length: #{file.size}\r\n")
-      client.write("Last-Modified: #{file.mtime.httpdate}\r\n")
+      response.status_code   = :ok
+      response.type          = [content_type, media_type].join(';')
+      response.length        = file.size
+      response.last_modified = file.mtime.httpdate
 
-      if parser.http_method == 'HEAD'
+      if request.head?
+        response.finish
         file.close
-        client.close
 
-        next
+        return
       end
 
-      client.write("\r\n")
+      response.add_new_line
 
       file_stream = reactor.add_stream(file, true)
+
       file_stream.pipe_to(client)
-      file_stream.on(:close) do
-        client.close
-      end
+
+      file_stream.on(:close) { response.finish }
     rescue Errno::ENOENT
-      client.write("HTTP/1.1 404 Not Found\r\n")
-      client.write("Content-Length: 0\r\n")
-      client.close
+      response.status_code = :not_found
+      response.length      = 0
+      response.finish
     end
   end
 
   client.on(:data) do |data|
-    parser << data
+    request.http_parser << data
   end
 end
 
