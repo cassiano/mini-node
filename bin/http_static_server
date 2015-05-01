@@ -16,7 +16,7 @@ MiniNode::HttpServer.new("0.0.0.0", 4000) do |request, response, reactor|
     response.status_code = :forbidden
     response.finish
 
-    return
+    next
   end
 
   begin
@@ -34,7 +34,7 @@ MiniNode::HttpServer.new("0.0.0.0", 4000) do |request, response, reactor|
 
       file.close
 
-      return
+      next
     end
 
     response.status_code   = :ok
@@ -46,7 +46,7 @@ MiniNode::HttpServer.new("0.0.0.0", 4000) do |request, response, reactor|
       response.finish
       file.close
 
-      return
+      next
     end
 
     response.add_new_line
