@@ -5,7 +5,15 @@ DEBUG_MODE = false
 require 'mini_node/http_server'
 require 'mime/types'
 
-MiniNode::HttpServer.new("0.0.0.0", 4000) do |request, response, reactor|
+http_server = MiniNode::HttpServer.new('0.0.0.0', 4000)
+
+if DEBUG_MODE
+  http_server.reactor.on(:next_tick) do
+    puts "Stream count: #{http_server.reactor.stream_count}"
+  end
+end
+
+http_server.start do |request, response|
   if DEBUG_MODE
     puts '------------'
     puts [request.verb, request.url, request.headers].inspect
@@ -13,7 +21,7 @@ MiniNode::HttpServer.new("0.0.0.0", 4000) do |request, response, reactor|
   end
 
   unless request.get? || request.head?
-    response.status_code = :forbidden
+    response.status_code = :method_not_allowed
     response.finish
 
     next
@@ -51,7 +59,7 @@ MiniNode::HttpServer.new("0.0.0.0", 4000) do |request, response, reactor|
 
     response.mark_start_of_body
 
-    file_stream = reactor.add_stream(file, true)
+    file_stream = http_server.reactor.add_stream(file, true)
 
     file_stream.pipe_to response
 
@@ -60,6 +68,7 @@ MiniNode::HttpServer.new("0.0.0.0", 4000) do |request, response, reactor|
     end
   rescue Errno::ENOENT
     response.status_code = :not_found
+    response.length      = 0
     response.finish
   end
 end

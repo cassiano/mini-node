@@ -1,11 +1,12 @@
+require 'http/parser'
 require 'time'
 
 module MiniNode
   class Request
     attr_reader :http_parser
 
-    def initialize(http_parser)
-      @http_parser = http_parser
+    def initialize
+      @http_parser = Http::Parser.new
     end
 
     def verb
@@ -20,14 +21,14 @@ module MiniNode
       http_parser.headers
     end
 
+    def if_modified_since
+      @if_modified_since ||= (http_date = headers['If-Modified-Since']) && Time.parse(http_date)
+    end
+
     [:get, :put, :delete, :post, :patch, :head].each do |http_method|
       define_method "#{http_method}?" do
         verb.downcase.to_sym == http_method
       end
-    end
-
-    def if_modified_since
-      @if_modified_since ||= (http_date = headers['If-Modified-Since']) && Time.parse(http_date)
     end
   end
 end

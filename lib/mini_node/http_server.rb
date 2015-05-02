@@ -1,16 +1,17 @@
 require 'mini_node'
 require 'mini_node/request'
 require 'mini_node/response'
-require 'http/parser'
 
 module MiniNode
   class HttpServer
     attr_reader :reactor, :server
 
-    def initialize(host, port, &block)
+    def initialize(host, port)
       @reactor = MiniNode::Reactor.new
       @server  = @reactor.listen(host, port)
+    end
 
+    def start(&block)
       server.on(:accept) do |client|
         process_request client, &block
       end
@@ -21,7 +22,7 @@ module MiniNode
     protected
 
     def process_request(client, &block)
-      request  = MiniNode::Request.new(Http::Parser.new)
+      request  = MiniNode::Request.new
       response = MiniNode::Response.new(client)
 
       client.on(:data) do |data|

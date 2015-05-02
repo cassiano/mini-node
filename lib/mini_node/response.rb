@@ -37,13 +37,13 @@ module MiniNode
     def status_code=(code)
       case code
       when 200, :ok
-        writeln "HTTP/1.1 200 OK"
+        writeln 'HTTP/1.1 200 OK'
       when 304, :not_modified
-        writeln "HTTP/1.1 304 Not Modified"
+        writeln 'HTTP/1.1 304 Not Modified'
       when 403, :forbidden
-        writeln "HTTP/1.1 403 Forbidden"
-      when 404, :not_found
-        writeln "HTTP/1.1 404 Not Found"
+        writeln 'HTTP/1.1 403 Forbidden'
+      when 405, :method_not_allowed
+        writeln 'HTTP/1.1 405 Method not allowed'
       else
         raise "Invalid HTTP status code #{code}"
       end
