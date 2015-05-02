@@ -6,12 +6,20 @@ module MiniNode
       @client = client
     end
 
-    def add_header(name, value)
-      client.write "#{name}: #{value}\r\n"
+    def write(text)
+      client.write text
     end
 
-    def add_new_line
-      client.write "\r\n"
+    def writeln(text_line)
+      write "#{text_line}\r\n"
+    end
+
+    def add_header(name, value)
+      writeln "#{name}: #{value}"
+    end
+
+    def mark_start_of_body
+      writeln ''
     end
 
     def length=(length)
@@ -29,13 +37,13 @@ module MiniNode
     def status_code=(code)
       case code
       when 200, :ok
-        client.write("HTTP/1.1 200 OK\r\n")
+        writeln "HTTP/1.1 200 OK"
       when 304, :not_modified
-        client.write("HTTP/1.1 304 Not Modified\r\n")
+        writeln "HTTP/1.1 304 Not Modified"
       when 403, :forbidden
-        client.write("HTTP/1.1 403 Forbidden\r\n")
+        writeln "HTTP/1.1 403 Forbidden"
       when 404, :not_found
-        client.write("HTTP/1.1 404 Not Found\r\n")
+        writeln "HTTP/1.1 404 Not Found"
       else
         raise "Invalid HTTP status code #{code}"
       end
