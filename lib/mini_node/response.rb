@@ -22,6 +22,11 @@ module MiniNode
       writeln ''
     end
 
+    def body=(body)
+      mark_start_of_body
+      write body
+    end
+
     def length=(length)
       add_header 'Content-Length', length
     end
