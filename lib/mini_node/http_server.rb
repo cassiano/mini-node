@@ -30,7 +30,7 @@ module MiniNode
       end
 
       request.http_parser.on_message_complete = lambda do
-        block.call request, response, reactor
+        block.call request, response
       end
     end
   end

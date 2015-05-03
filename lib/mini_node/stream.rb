@@ -49,11 +49,11 @@ module MiniNode
 
     def close
       if @write_buffer.empty?
-        emit(:close)
+        emit :close
         @io.close
       else
         on(:empty_write_buffer) do
-          emit(:close)
+          emit :close
           @io.close
         end
       end

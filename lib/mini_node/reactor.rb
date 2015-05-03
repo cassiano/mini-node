@@ -44,7 +44,7 @@ module MiniNode
     end
 
     def tick
-      emit(:next_tick)
+      emit :next_tick
 
       readable, writeable, _ = IO.select(@streams, @streams, [], 1)
 

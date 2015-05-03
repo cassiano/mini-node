@@ -10,7 +10,7 @@ module MiniNode
       client.write text
     end
 
-    def writeln(text_line)
+    def writeln(text_line = '')
       write "#{text_line}\r\n"
     end
 
@@ -19,7 +19,7 @@ module MiniNode
     end
 
     def mark_start_of_body
-      writeln ''
+      writeln
     end
 
     def body=(body)

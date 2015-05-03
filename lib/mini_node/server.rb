@@ -9,8 +9,12 @@ module MiniNode
     end
 
     def handle_read
-      connection = Stream.new(@socket.accept_nonblock)
-      emit(:accept, connection)
+      begin
+        connection = Stream.new(@socket.accept_nonblock)
+
+        emit :accept, connection
+      rescue Errno::EMFILE    # Too many open files
+      end
     end
 
     def to_io

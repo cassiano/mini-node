@@ -7,11 +7,13 @@ require 'mime/types'
 
 http_server = MiniNode::HttpServer.new('0.0.0.0', 4000)
 
-if DEBUG_MODE
-  http_server.reactor.on(:next_tick) do
-    puts "Stream count: #{http_server.reactor.stream_count}"
-  end
-end
+# max_stream_count = 0
+# http_server.reactor.on(:next_tick) do
+#   stream_count = http_server.reactor.stream_count
+#   max_stream_count = stream_count if stream_count > max_stream_count
+#
+#   puts "Stream count: #{stream_count}; Max stream count: #{max_stream_count}"
+# end
 
 http_server.start do |request, response|
   if DEBUG_MODE
