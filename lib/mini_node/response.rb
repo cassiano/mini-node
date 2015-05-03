@@ -27,11 +27,11 @@ module MiniNode
       write body
     end
 
-    def length=(length)
+    def content_length=(length)
       add_header 'Content-Length', length
     end
 
-    def type=(type)
+    def content_type=(type)
       add_header 'Content-Type', type
     end
 

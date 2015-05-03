@@ -32,13 +32,16 @@ http_server.start do |request, response|
   begin
     file = File.open(File.join('public', request.url), 'r')
 
-    mime_type    = MIME::Types.of(file.path).first
-    content_type = mime_type && mime_type.content_type
-    media_type   = 'charset=UTF-8' if mime_type && mime_type.media_type.downcase == 'text'
+    if (mime_type = MIME::Types.of(file.path).first)
+      content_type          = mime_type.content_type
+      response_content_type = content_type
+
+      response_content_type += ';charset=UTF-8' if mime_type.media_type.downcase == 'text'
+    end
 
     if request.if_modified_since && file.mtime <= request.if_modified_since
       response.status_code   = :not_modified
-      response.type          = media_type ? [content_type, media_type].join(';') : content_type if content_type
+      response.content_type  = response_content_type if response_content_type
       response.last_modified = file.mtime
       response.finish
 
@@ -47,10 +50,10 @@ http_server.start do |request, response|
       next
     end
 
-    response.status_code   = :ok
-    response.type          = media_type ? [content_type, media_type].join(';') : content_type if content_type
-    response.length        = file.size
-    response.last_modified = file.mtime
+    response.status_code    = :ok
+    response.content_type   = response_content_type if response_content_type
+    response.content_length = file.size
+    response.last_modified  = file.mtime
 
     if request.head?
       response.finish
@@ -69,8 +72,8 @@ http_server.start do |request, response|
       response.finish
     end
   rescue Errno::ENOENT
-    response.status_code = :not_found
-    response.length      = 0
+    response.status_code    = :not_found
+    response.content_length = 0
     response.finish
   end
 end
