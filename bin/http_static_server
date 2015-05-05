@@ -36,7 +36,9 @@ http_server.start do |request, response|
       content_type          = mime_type.content_type
       response_content_type = content_type
 
-      response_content_type += ';charset=UTF-8' if mime_type.media_type.downcase == 'text'
+      if ['text', 'application'].include?(mime_type.media_type.downcase)
+        response_content_type += ";charset=#{file.external_encoding.name}"
+      end
     end
 
     if request.if_modified_since && file.mtime <= request.if_modified_since
