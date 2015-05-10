@@ -1,11 +1,15 @@
 #!/usr/bin/env ruby
 
-DEBUG_MODE = false
+DEBUG_MODE               = false
+ENABLE_FS_CACHING        = true
+FS_CACHING_MIN_FILE_SIZE = 1024 ** 2
 
 require 'mini_node/http_server'
 require 'mime/types'
 
 http_server = MiniNode::HttpServer.new('0.0.0.0', 4000)
+
+fs_cache = {}
 
 # max_stream_count = 0
 # http_server.reactor.on(:next_tick) do
@@ -23,13 +27,44 @@ http_server.start do |request, response|
   end
 
   unless request.get? || request.head?
-    response.status_code = :method_not_allowed
+    response.set_head :method_not_allowed
     response.finish
 
     next
   end
 
   begin
+    if ENABLE_FS_CACHING
+      if (cached_file = fs_cache[request.url]) && !(request.get? && !cached_file[:content])
+        cached_file[:access_count] += 1
+
+        puts ">>> Reading #{request.url} from cache (count = #{cached_file[:access_count]})..."
+
+        if request.if_modified_since && cached_file[:mtime] <= request.if_modified_since
+          response.set_head :not_modified, [
+            ['Content-Type',  cached_file[:content_type]],
+            ['Last-Modified', cached_file[:mtime].httpdate]
+          ]
+
+          response.finish
+
+          next
+        end
+
+        response.set_head :ok, [
+          ['Content-Type',    cached_file[:content_type]],
+          ['Content-Length',  cached_file[:size]],
+          ['Last-Modified',   cached_file[:mtime].httpdate]
+        ]
+
+
+        response.body = cached_file[:content] if request.get?
+        response.finish
+
+        next
+      end
+    end
+
     file = File.open(File.join('public', request.url), 'r')
 
     if (mime_type = MIME::Types.of(file.path).first)
@@ -41,21 +76,35 @@ http_server.start do |request, response|
       end
     end
 
-    if request.if_modified_since && file.mtime <= request.if_modified_since
-      response.status_code   = :not_modified
-      response.content_type  = response_content_type if response_content_type
-      response.last_modified = file.mtime
-      response.finish
+    if ENABLE_FS_CACHING
+      if file.size <= FS_CACHING_MIN_FILE_SIZE
+        fs_cache[request.url] = {
+          path: file.path,
+          content_type: response_content_type,
+          size: file.size,
+          mtime: file.mtime,
+          access_count: 0
+        }
+      end
+    end
 
+    if request.if_modified_since && file.mtime <= request.if_modified_since
+      response.set_head :not_modified, [
+        ['Content-Type',  response_content_type],
+        ['Last-Modified', file.mtime.httpdate]
+      ]
+
+      response.finish
       file.close
 
       next
     end
 
-    response.status_code    = :ok
-    response.content_type   = response_content_type if response_content_type
-    response.content_length = file.size
-    response.last_modified  = file.mtime
+    response.set_head :ok, [
+      ['Content-Type',    response_content_type],
+      ['Content-Length',  file.size],
+      ['Last-Modified',   file.mtime.httpdate]
+    ]
 
     if request.head?
       response.finish
@@ -64,18 +113,22 @@ http_server.start do |request, response|
       next
     end
 
-    response.mark_start_of_body
-
     file_stream = http_server.reactor.add_stream(file, true)
 
     file_stream.pipe_to response
 
     file_stream.on(:close) do
+      if ENABLE_FS_CACHING
+        fs_cache[request.url][:content] = response.body if fs_cache[request.url]
+      end
+
       response.finish
     end
   rescue Errno::ENOENT
-    response.status_code    = :not_found
-    response.content_length = 0
+    response.set_head :not_found, [
+      ['Content-Length', 0]
+    ]
+
     response.finish
   end
 end

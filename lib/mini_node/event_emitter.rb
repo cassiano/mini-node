@@ -27,7 +27,7 @@ module MiniNode
         begin
           callback.call(*args)
         rescue => e
-          puts ">>> Exception detected: `#{e.message}`"
+          puts ">>> Exception detected: `#{e.message}`. Stack: #{caller.join("\n")}"
         end
       end
     end

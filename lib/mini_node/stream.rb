@@ -48,20 +48,21 @@ module MiniNode
     end
 
     def close
-      if @write_buffer.empty?
+      close_io = -> do
         emit :close
         @io.close
+      end
+
+      if @write_buffer.empty?
+        close_io.call
       else
-        on(:empty_write_buffer) do
-          emit :close
-          @io.close
-        end
+        on :empty_write_buffer, &close_io
       end
     end
 
     def pipe_to(another_stream)
       on(:data) do |data|
-        another_stream.write(data)
+        another_stream.write data
       end
     end
 
