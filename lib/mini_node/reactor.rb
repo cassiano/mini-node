@@ -20,7 +20,7 @@ module MiniNode
 
       @streams << stream
 
-      stream.on(:close) do
+      stream.on :close do
         remove_stream stream
       end
 
@@ -32,7 +32,7 @@ module MiniNode
 
       add_stream server
 
-      server.on(:accept) do |client|
+      server.on :accept do |client|
         add_stream client
       end
 

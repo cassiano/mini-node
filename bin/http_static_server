@@ -12,7 +12,7 @@ http_server = MiniNode::HttpServer.new('0.0.0.0', 4000)
 fs_cache = {}
 
 # max_stream_count = 0
-# http_server.reactor.on(:next_tick) do
+# http_server.reactor.on :next_tick do
 #   stream_count = http_server.reactor.stream_count
 #   max_stream_count = stream_count if stream_count > max_stream_count
 #
@@ -117,7 +117,7 @@ http_server.start do |request, response|
 
     file_stream.pipe_to response
 
-    file_stream.on(:close) do
+    file_stream.on :close do
       if ENABLE_FS_CACHING
         fs_cache[request.url][:content] = response.body if fs_cache[request.url]
       end

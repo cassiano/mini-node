@@ -12,7 +12,7 @@ module MiniNode
     end
 
     def start(&block)
-      server.on(:accept) do |client|
+      server.on :accept do |client|
         process_request client, &block
       end
 
@@ -25,7 +25,7 @@ module MiniNode
       request  = MiniNode::Request.new
       response = MiniNode::Response.new(client)
 
-      client.on(:data) do |data|
+      client.on :data do |data|
         request.http_parser << data
       end
 

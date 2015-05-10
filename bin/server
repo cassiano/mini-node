@@ -7,18 +7,18 @@ reactor = MiniNode::Reactor.new
 
 server = reactor.listen("0.0.0.0", 4000)
 
-server.on(:accept) do |client|
+server.on :accept do |client|
   client.write("Bem-vindo ao servidor!")
 
-  client.on(:data) do |data|
+  client.on :data do |data|
     client.write(data)
   end
 
-  next_tick_event_callback_id = reactor.on(:next_tick) do
+  next_tick_event_callback_id = reactor.on :next_tick do
     client.write("Tick")
   end
 
-  client.on(:close) do
+  client.on :close do
     reactor.unregister(:next_tick, next_tick_event_callback_id)
   end
 end
