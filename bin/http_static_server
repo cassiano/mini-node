@@ -20,12 +20,6 @@ fs_cache = {}
 # end
 
 http_server.start do |request, response|
-  if DEBUG_MODE
-    puts '------------'
-    puts [request.verb, request.url, request.headers].inspect
-    puts '------------'
-  end
-
   unless request.get? || request.head?
     response.set_head :method_not_allowed
     response.finish
@@ -38,7 +32,7 @@ http_server.start do |request, response|
       if (cached_file = fs_cache[request.url]) && !(request.get? && !cached_file[:content])
         cached_file[:access_count] += 1
 
-        puts ">>> Reading #{request.url} from cache (count = #{cached_file[:access_count]})..."
+        puts ">>> Reading #{request.url} from cache (count = #{cached_file[:access_count]})..." if DEBUG_MODE
 
         if request.if_modified_since && cached_file[:mtime] <= request.if_modified_since
           response.set_head :not_modified, [
@@ -58,7 +52,7 @@ http_server.start do |request, response|
         ]
 
 
-        response.body = cached_file[:content] if request.get?
+        response.write(cached_file[:content]) if request.get?
         response.finish
 
         next
