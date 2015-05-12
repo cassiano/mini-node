@@ -27,17 +27,19 @@ module MiniNode
     end
 
     def handle_write
-      flush
-
-      emit(:empty_write_buffer) if @write_buffer.empty?
+      if @write_buffer.empty?
+        emit :empty_write_buffer
+      else
+        write ''
+      end
     end
 
     def write(data)
-      @write_buffer << data
-    end
+      raise "Non-empty buffer cannot be written to closed stream" if !@write_buffer.empty? && closed?
 
-    def flush
-      return if @write_buffer.empty? || closed?
+      return if closed?
+
+      @write_buffer << data if data.size > 0
 
       begin
         bytes_written = @io.write_nonblock(@write_buffer)
