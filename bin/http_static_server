@@ -109,7 +109,8 @@ http_server.start do |request, response|
 
     file_stream = http_server.reactor.add_stream(file, true)
 
-    file_stream.pipe_to response
+    # Pipe `file_stream` to `response`.
+    file_stream | response
 
     file_stream.on :close do
       if ENABLE_FS_CACHING

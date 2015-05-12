@@ -60,7 +60,8 @@ module MiniNode
       end
     end
 
-    def pipe_to(another_stream)
+    # Pipe method.
+    def |(another_stream)
       on :data do |data|
         another_stream.write data
       end
