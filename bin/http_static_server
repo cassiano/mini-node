@@ -2,7 +2,7 @@
 
 DEBUG_MODE               = false
 ENABLE_FS_CACHING        = true
-FS_CACHING_MIN_FILE_SIZE = 1024 ** 2
+FS_CACHING_MAX_FILE_SIZE = 1024 ** 2
 
 require 'mini_node/http_server'
 require 'mime/types'
@@ -32,7 +32,7 @@ http_server.start do |request, response|
       if (cached_file = fs_cache[request.url]) && !(request.get? && !cached_file[:content])
         cached_file[:access_count] += 1
 
-        puts ">>> Reading #{request.url} from cache (count = #{cached_file[:access_count]})..." if DEBUG_MODE
+        puts ">>> Reading #{request.url} from cache (count = #{cached_file[:access_count]})..."
 
         if request.if_modified_since && cached_file[:mtime] <= request.if_modified_since
           response.set_head :not_modified, [
@@ -71,7 +71,7 @@ http_server.start do |request, response|
     end
 
     if ENABLE_FS_CACHING
-      if file.size <= FS_CACHING_MIN_FILE_SIZE
+      if file.size <= FS_CACHING_MAX_FILE_SIZE
         fs_cache[request.url] = {
           path: file.path,
           content_type: response_content_type,
