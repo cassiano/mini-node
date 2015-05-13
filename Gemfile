@@ -6,3 +6,4 @@ gem "http_parser.rb"
 gem "redis"
 gem "rerun"
 gem "mime-types"
+gem 'listen', '~> 2.7' # this prevents upgrading to 3.x

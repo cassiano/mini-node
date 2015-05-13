@@ -6,6 +6,7 @@ FS_CACHING_MAX_FILE_SIZE = 1024 ** 2
 
 require 'mini_node/http_server'
 require 'mime/types'
+require 'listen' if ENABLE_FS_CACHING
 
 http_server = MiniNode::HttpServer.new('0.0.0.0', 4000)
 
@@ -18,6 +19,24 @@ fs_cache = {}
 #
 #   puts "Stream count: #{stream_count}; Max stream count: #{max_stream_count}"
 # end
+
+if ENABLE_FS_CACHING
+  listener = Listen.to('public') do |modified, added, removed|
+    (modified + removed).each do |path|
+      url, _ = fs_cache.find do |(_, cached_data)|
+        path.end_with? cached_data[:path]
+      end
+
+      if url
+        puts "Expiring #{url}..."
+
+        fs_cache.delete url
+      end
+    end
+  end
+
+  listener.start
+end
 
 http_server.start do |request, response|
   unless request.get? || request.head?
@@ -72,6 +91,8 @@ http_server.start do |request, response|
 
     if ENABLE_FS_CACHING
       if file.size <= FS_CACHING_MAX_FILE_SIZE
+        puts ">>> Caching #{request.url} metadata..."
+
         fs_cache[request.url] = {
           path: file.path,
           content_type: response_content_type,
@@ -114,6 +135,8 @@ http_server.start do |request, response|
 
     file_stream.on :close do
       if ENABLE_FS_CACHING
+        puts ">>> Caching #{request.url} content..."
+
         fs_cache[request.url][:content] = response.body if fs_cache[request.url]
       end
 

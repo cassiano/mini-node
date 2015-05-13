@@ -9,8 +9,11 @@ GEM
     celluloid (0.16.0)
       timers (~> 4.0.0)
     ffi (1.9.8)
+    ffi (1.9.8-java)
     hitimes (1.2.2)
+    hitimes (1.2.2-java)
     http_parser.rb (0.6.0)
+    http_parser.rb (0.6.0-java)
     listen (2.10.0)
       celluloid (~> 0.16.0)
       rb-fsevent (>= 0.9.3)
@@ -27,11 +30,13 @@ GEM
       hitimes
 
 PLATFORMS
+  java
   ruby
 
 DEPENDENCIES
   bundler (~> 1.9)
   http_parser.rb
+  listen (~> 2.7)
   mime-types
   mini_node!
   rake (~> 10.0)

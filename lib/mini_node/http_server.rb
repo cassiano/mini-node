@@ -12,11 +12,11 @@ module MiniNode
     end
 
     def start(&block)
-      count = 0
+      hit_count = 0
 
       server.on :accept do |client|
-        count += 1
-        process_request client, count, &block
+        hit_count += 1
+        process_request client, hit_count, &block
       end
 
       reactor.start
@@ -24,7 +24,7 @@ module MiniNode
 
     protected
 
-    def process_request(client, count, &block)
+    def process_request(client, hit_count, &block)
       request  = MiniNode::Request.new
       response = MiniNode::Response.new(client)
 
@@ -33,15 +33,11 @@ module MiniNode
       end
 
       request.http_parser.on_message_complete = lambda do
+        puts({ hit_count: hit_count, request: [request.verb, request.url] }.inspect)
+
         block.call request, response
 
-        log_message = {
-          count: count,
-          request: [request.verb, request.url],
-          response: [response.status_code, response.headers]
-        }.inspect
-
-        puts log_message
+        puts({ response: [response.status_code, response.headers] }.inspect)
       end
     end
   end
