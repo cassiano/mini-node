@@ -21,7 +21,7 @@ module MiniNode
     def emit(event, *args)
       return if callbacks[event].size == 0
 
-      puts "[#{Time.now}] Emitting `#{event}` for #{callbacks[event].size} registered callback(s) with #{args.size} argument(s)" if DEBUG_MODE
+      puts "[#{Time.now}] Emitting `#{event}` of `#{self}` for #{callbacks[event].size} registered callback(s) with #{args.size} argument(s)" if DEBUG_MODE
 
       callbacks[event].each do |callback|
         begin

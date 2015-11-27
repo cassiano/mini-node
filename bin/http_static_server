@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-DEBUG_MODE = false
+DEBUG_MODE = true
 
 require 'bundler/setup'
 require 'mini_node'
@@ -11,6 +11,8 @@ require 'time'
 reactor = MiniNode::Reactor.new
 
 server = reactor.listen("0.0.0.0", 4000)
+
+# reactor.on(:next_tick) { puts reactor.stream_count }
 
 server.on(:accept) do |client|
   parser = Http::Parser.new

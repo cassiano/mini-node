@@ -75,5 +75,9 @@ module MiniNode
     def to_io
       @io
     end
+
+    def to_s
+      @io.class.to_s
+    end
   end
 end

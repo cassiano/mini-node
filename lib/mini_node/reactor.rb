@@ -11,6 +11,10 @@ module MiniNode
       @streams = []
     end
 
+    def stream_count
+      @streams.size
+    end
+
     def add_stream(stream, wrap = false)
       stream = Stream.new(stream) if wrap
 
