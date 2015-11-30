@@ -4,7 +4,7 @@ module MiniNode
 
     include EventEmitter
 
-    CHUNK_SIZE = 16 * 1024
+    CHUNK_SIZE = 512 * 1024
 
     def initialize(io)
       @io           = io
@@ -29,14 +29,12 @@ module MiniNode
     end
 
     def handle_write
-      if @write_buffer.empty?
-        emit :empty_write_buffer
-      else
-        write @write_buffer, true
-      end
+      flush
+
+      emit(:empty_write_buffer) if @write_buffer.empty?
     end
 
-    def write(data, replace_buffer = false)
+    def write(data)
       if DEBUG_MODE
         chomped_data = data.chomp
 
@@ -47,21 +45,15 @@ module MiniNode
         end
       end
 
-      bytes_written = @io.write_nonblock(data)
+      @write_buffer << data unless data.empty?
+
+      bytes_written = @io.write_nonblock(@write_buffer)
       @total_bytes_written += bytes_written
-      remaining_data = data[bytes_written..-1] || ''
+      @write_buffer = @write_buffer[bytes_written..-1] || ''
 
       if DEBUG_MODE
         puts "#{bytes_written} bytes written"
-        puts "#{remaining_data.size} bytes remaining"
-      end
-
-      if remaining_data.size > 0
-        if replace_buffer
-          @write_buffer = remaining_data
-        else
-          @write_buffer << remaining_data
-        end
+        puts "#{@write_buffer.bytesize} bytes remaining"
       end
     rescue Errno::EAGAIN, Errno::EPIPE
     end
@@ -90,6 +82,12 @@ module MiniNode
 
     def to_s
       @io.class.to_s
+    end
+
+    protected
+
+    def flush
+      write('') unless @write_buffer.empty?
     end
   end
 end

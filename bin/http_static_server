@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-DEBUG_MODE = true
+DEBUG_MODE = false
 
 require 'bundler/setup'
 require 'mini_node'
